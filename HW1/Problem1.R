@@ -13,13 +13,13 @@ waitTimes <- function(rawData) {
     for (i in 1:max(newData$user_id)) {
         curData <- newData[newData$user_id == i,]$timestamp
         curLeft <- curData[2:length(curData)]
-        individuals <- c(individuals, curLeft - curData[1:length(curLeft)])
+        individuals <- rbind(individuals, curLeft - curData[1:length(curLeft)])
     }
 
     # Collectively
     curData <- newData$timestamp
     overall <- curData[2:length(curData)] - curData[1:length(curData) - 1]
-    return(c(individuals, overall))
+    return(rbind(individuals, overall))
 }
 
-waitTimes(rawData)
+a <- waitTimes(rawData)
