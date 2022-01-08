@@ -8,18 +8,18 @@ rawData <- ml100[ , c("user_id", "timestamp")]
 waitTimes <- function(rawData) {
     # sort by timestamp
     newData <- rawData[order(rawData$timestamp),]
-    individuals <- c()
+    individuals <- list()
     # Iterate over each user
     for (i in 1:max(newData$user_id)) {
         curData <- newData[newData$user_id == i,]$timestamp
         curLeft <- curData[2:length(curData)]
-        individuals <- rbind(individuals, curLeft - curData[1:length(curLeft)])
+        individuals[[length(individuals)+1]] <- list(curLeft - curData[1:length(curLeft)])
     }
 
     # Collectively
-    curData <- newData$timestamp
-    overall <- curData[2:length(curData)] - curData[1:length(curData) - 1]
-    return(rbind(individuals, overall))
+    # curData <- newData$timestamp
+    # overall <- curData[2:length(curData)] - curData[1:length(curData) - 1]
+    return(individuals)
 }
 
 a <- waitTimes(rawData)
