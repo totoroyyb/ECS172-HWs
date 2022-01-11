@@ -8,9 +8,9 @@ plotDensities <- function(inputDF, xName, grpName) {
         curData <- inputDF[substr(inputDF[[grpName]], i, i) == "1",]
         curDen <- density(curData[[xName]])
         if (i == 1) {
-            plot(curDen, ylim=c(0, 1.6), col = colors[i])
+            plot(curDen, ylim = c(0, 1.6), col = colors[i])
         } else {
-            lines(curDen, ylim=c(0, 1.6), col = colors[i])
+            lines(curDen, ylim = c(0, 1.6), col = colors[i])
         }
     }
     legend(x = "topright", legend = c("genre 1", "genre 2", "genre 3",
