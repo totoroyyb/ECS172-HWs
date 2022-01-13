@@ -1,26 +1,45 @@
 # loading in TA's script
-# library(ggplot2)
+
 load("Hwk1.RData")
-ml100kpluscovs$genre <- paste0(ml100kpluscovs$G1, ml100kpluscovs$G2, ml100kpluscovs$G3,
-                               ml100kpluscovs$G4, ml100kpluscovs$G5, ml100kpluscovs$G6, ml100kpluscovs$G7, ml100kpluscovs$G8)
 
 plotDensities <- function(inputDF, xName, grpName) {
-    
-    colors <- c("antiquewhite1", "aquamarine2", "bisque1", "cadetblue1",
-                "chocolate2", "darkmagenta", "firebrick1", "darkseagreen2")
-    for (i in 1:8) {
-        curData <- inputDF[substr(inputDF[[grpName]], i, i) == "1",]
-        curDen <- density(curData[[xName]])
-        if (i == 1) {
-            plot(curDen, ylim = c(0, 1.6), col = colors[i])
-        } else {
-            lines(curDen, ylim = c(0, 1.6), col = colors[i])
-        }
-    }
-    legend(x = "topright", legend = c("genre 1", "genre 2", "genre 3",
-    "genre 4", "genre 5", "genre 6", "genre 7", "genre 8"),
-    col = colors, lwd = 2)
+    library(ggplot2)
+
+    inputDF[, grpName] <- as.factor(inputDF[, grpName])
+
+    p <- ggplot(inputDF, aes_string(x = xName, color = grpName)) +
+        geom_density() +
+        labs(
+            x = xName,
+            y = "Density",
+            title = paste("Density Plot of", xName, "for Different", grpName)
+        )
+
+    print(p)
+    p
 }
 
+prep_data <- function(allow_multiple_genres = FALSE) {
+    num_genres <- 19
+    genre_col_names <- paste0(rep("G", num_genres), 1:num_genres)
+    preinclude_cols <- c("user", "item", "rating")
+    data_for_process <- ml100kpluscovs[, c(preinclude_cols, genre_col_names)]
 
-plotDensities(ml100kpluscovs, "rating", "genre")
+    convert_genre <- function(r) {
+        genre_name <- sample(names(r)[r == 1], 1)
+        genre_index <- substr(genre_name, 2, nchar(genre_name))
+        as.integer(genre_index)
+    }
+
+    converted_genres <- apply(
+        data_for_process[, genre_col_names],
+        1,
+        convert_genre
+    )
+    cbind(data_for_process, genre = converted_genres)
+}
+
+genre_df <- prep_data()
+print("Only plotting first 8 genres for clarity...")
+genre_df <- genre_df[genre_df["genre"] <= 8, ]
+plotDensities(genre_df, "rating", "genre")
