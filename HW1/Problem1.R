@@ -5,6 +5,14 @@ ml100 <- read.csv("ml-100k/u.data", header = FALSE, sep = "\t")
 colnames(ml100) <- c("user_id", "item_id", "rating", "timestamp")
 rawData <- ml100[ , c("user_id", "timestamp")]
 
+mergeEm <- function(listOfVecs) {
+    mergedVecs <- c()
+    for (Vec in listOfVecs) {
+        mergedVecs <- c(mergedVecs, Vec)
+    }
+    return(mergedVecs[order(mergedVecs)])
+}
+
 waitTimes <- function(rawData) {
     individuals <- c()
     listOfVecs <- list()
@@ -25,10 +33,3 @@ waitTimes <- function(rawData) {
 
 a <- waitTimes(rawData)
 
-mergeEm <- function(listOfVecs) {
-    mergedVecs <- c()
-    for (Vec in listOfVecs) {
-        mergedVecs <- c(mergedVecs, Vec)
-    }
-    return(mergedVecs[order(mergedVecs)])
-}
