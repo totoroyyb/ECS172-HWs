@@ -1,11 +1,9 @@
-# download.file("http://files.grouplens.org/datasets/movielens/ml-100k.zip", 'ml-100k.zip") # nolint
-# unzip("ml-100k.zip") # nolint
 
-load("Hwk1.RData")
+# load("Hwk1.RData")
 
 # ml100 <- read.csv("ml-100k/u.data", header = FALSE, sep = "\t")
 # colnames(ml100) <- c("user_id", "item_id", "rating", "timestamp")
-# rawData <- ml100[ , c("user_id", "timestamp")]
+# ml100 <- ml100[ , c("user_id", "timestamp")]
 
 mergeEm <- function(listOfVecs) {
     mergedVecs <- c()
@@ -33,5 +31,5 @@ waitTimes <- function(rawData) {
     return(list(individuals, overall))
 }
 
-p1_result <- waitTimes(rawData)
-
+p1_result <- waitTimes(ml100)
+print(p1_result)

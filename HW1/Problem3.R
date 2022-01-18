@@ -1,6 +1,6 @@
 # loading in TA's script
 
-load("Hwk1.RData")
+# load("Hwk1.RData")
 
 plotDensities <- function(inputDF, xName, grpName) {
     library(ggplot2)
@@ -24,11 +24,11 @@ prep_data <- function(allow_multiple_genres = FALSE) {
     genre_col_names <- paste0(rep("G", num_genres), 1:num_genres)
     preinclude_cols <- c("user", "item", "rating")
     data_for_process <- ml100kpluscovs[, c(preinclude_cols, genre_col_names)]
-    
+
     get_mean_rating <- function(movie_num) {
         sub_df <- data_for_process[data_for_process$item == movie_num, ]
         mean(sub_df$rating)
-        ret <- sub_df[1,]
+        ret <- sub_df[1, ]
         ret$meanRating <- mean(sub_df$rating)
         ret <- ret[c("item", genre_col_names, "meanRating")]
         return(ret)
@@ -44,7 +44,6 @@ prep_data <- function(allow_multiple_genres = FALSE) {
         genre_index <- substr(genre_name, 2, nchar(genre_name))
         as.integer(genre_index)
     }
-    
 
     converted_genres <- apply(
         mean_df[, genre_col_names],
