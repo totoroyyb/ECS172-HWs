@@ -31,12 +31,31 @@ prep_data <- function(allow_multiple_genres = FALSE) {
         as.integer(genre_index)
     }
 
-    converted_genres <- apply(
-        data_for_process[, genre_col_names],
-        1,
-        convert_genre
+    # converted_genres <- apply(
+    #     data_for_process[, genre_col_names],
+    #     1,
+    #     convert_genre
+    # )
+
+    mean_rating <- tapply(
+        data_for_process$rating,
+        data_for_process$item,
+        mean
     )
-    cbind(data_for_process, genre = converted_genres)
+
+    genres <- lapply(
+        unique(data_for_process$item),
+        function(item_index) {
+            data_row <- data_for_process[data_for_process$item == item_index, ]
+            convert_genre(data_row[1, genre_col_names])
+        }
+    )
+
+    as.data.frame(cbind(
+        item = unique(data_for_process$item),
+        rating = as.double(mean_rating),
+        genre = as.integer(genres)
+    ))
 }
 
 genre_df <- prep_data()
