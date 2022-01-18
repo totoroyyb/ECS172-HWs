@@ -19,16 +19,6 @@ plotDensities <- function(inputDF, xName, grpName) {
     p
 }
 
-get_mean_rating <- function(item) {
-    sub_df <- data_for_process[data_for_process$item == 1, ]
-    mean(sub_df$rating)
-    ret <- sub_df[1,]
-    ret$meanRating <- mean(sub_df$rating)
-    ret <- ret[c("item", genre_col_names, "meanRating")]
-    return(ret)
-}
-get_mean_rating(2)
-
 prep_data <- function(allow_multiple_genres = FALSE) {
     num_genres <- 19
     genre_col_names <- paste0(rep("G", num_genres), 1:num_genres)
