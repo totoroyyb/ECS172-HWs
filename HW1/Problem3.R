@@ -1,4 +1,5 @@
 # loading in TA's script
+set.seed(1)
 
 load("Hwk1.RData")
 
@@ -30,12 +31,6 @@ prep_data <- function(allow_multiple_genres = FALSE) {
         genre_index <- substr(genre_name, 2, nchar(genre_name))
         as.integer(genre_index)
     }
-
-    # converted_genres <- apply(
-    #     data_for_process[, genre_col_names],
-    #     1,
-    #     convert_genre
-    # )
 
     mean_rating <- tapply(
         data_for_process$rating,
