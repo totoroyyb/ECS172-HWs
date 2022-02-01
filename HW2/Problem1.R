@@ -1,11 +1,10 @@
-load("Hwk1.RData")
+load("./data/Hwk1.RData")
 
 ratingsCache <- function(inputDF) {
-    ratingsCacheStruct <- structure(
-        list(inputDF = inputDF, Aij = list()),
+    structure(
+        list(inputDF = inputDF, Aij = NULL),
         class = "ratingsCache"
     )
-    ratingsCacheStruct
 }
 
 findRating <- function(obj, i, j) {
@@ -30,14 +29,14 @@ findRating.ratingsCache <- function(obj, i, j) {
     }
 
     df <- new_obj$inputDF
-    df <- subset(df, user_id == i & item_id == j)
+    df <- subset(df, user == i & item == j)
     rating <- NA
     if (nrow(df) != 0) {
         rating <- df[, "rating"][1]
     }
 
-    new_ele <- c(rating)
-    names(new_ele) <- c(ele_name)
+    new_ele <- rating
+    names(new_ele) <- ele_name
     new_obj$Aij[[i]] <- append(new_obj$Aij[[i]], new_ele)
     eval.parent(substitute(obj <- new_obj))
     cat("Search rating from inputDF...\n")
