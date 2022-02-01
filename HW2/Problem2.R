@@ -1,4 +1,4 @@
-load('Hwk2.RData') #generation code is in the data folder
+load('./data/Hwk2.RData') #generation code is in the data folder
 require(rectools)
 require(qeML)
 
