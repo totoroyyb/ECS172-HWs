@@ -6,7 +6,6 @@ getInstEval()
 #house_vote
 colnames<- c('party', paste0(rep("B", 16), 1:16))
 house_vote = read.csv('house-votes-84.data', header = FALSE, col.names = colnames)
-house_vote[,1:17]=lapply(house_vote[,1:17], 'as.factor')
 house_vote$voter_num <- c(as.integer(row.names(house_vote)) )
 
 #take in a row vector and return a 16 * 19 vector
@@ -31,6 +30,8 @@ colnames(tmp) <- c('bill_id', 'bill_rating', 'party',paste0(rep("B", 16), 1:16),
 rownames(tmp) <- c(1:nrow(tmp))
 house_vote <- tmp
 house_vote <- house_vote[, c(20, 1:19)]
+
+# house_vote[,3:20]=lapply(as.data.frame(house_vote[,3:20]), 'as.factor')
 
 
 
