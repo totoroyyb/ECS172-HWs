@@ -1,4 +1,4 @@
-load("./data/Hwk1.RData")
+load("Hwk1.RData")
 
 ratingsCache <- function(inputDF) {
     structure(
@@ -12,24 +12,24 @@ findRating <- function(obj, i, j) {
 }
 
 findRating.ratingsCache <- function(obj, i, j) {
+    i <- as.character(i)
     j <- as.character(j)
     new_obj <- obj
+
     if (is.null(new_obj$Aij)) new_obj$Aij <- list()
 
-    if (i > length(new_obj$Aij) | is.null(new_obj$Aij[i])) {
+    if (as.integer(i) > length(new_obj$Aij) | is.null(new_obj$Aij[i])) {
         new_obj$Aij[i] <- list(NULL)
     }
-    
+
     ele_name <- j
-    # ele_name <- paste0("item_", j)
 
     if (ele_name %in% names(new_obj$Aij[[i]])) {
         cat("Reading from cache...\n")
         return(unname(new_obj$Aij[[i]][j]))
     }
 
-    df <- new_obj$inputDF
-    df <- subset(df, user == i & item == j)
+    df <- subset(new_obj$inputDF, user == i & item == j)
     rating <- NA
     if (nrow(df) != 0) {
         rating <- df[, "rating"][1]
