@@ -5,7 +5,7 @@ getInstEval()
 
 #house_vote
 colnames<- c('party', paste0(rep("B", 16), 1:16))
-house_vote = read.csv('house-votes-84.data', header = FALSE, col.names = colnames)
+house_vote = read.csv('./data/house-votes-84.data', header = FALSE, col.names = colnames)
 house_vote$voter_num <- c(as.integer(row.names(house_vote)) )
 
 #take in a row vector and return a 16 * 19 vector
@@ -31,11 +31,23 @@ rownames(tmp) <- c(1:nrow(tmp))
 house_vote <- tmp
 house_vote <- house_vote[, c(20, 1:19)]
 
-# house_vote[,3:20]=lapply(as.data.frame(house_vote[,3:20]), 'as.factor')
+sub <- function(x){
+  if(x=='?'){
+    x <- 'u'
+  }
+  x
+}
 
+house_vote$bill_rating <- lapply(house_vote$bill_rating, sub)
 
+for (i in 1:20) {
+  house_vote[, i] <- as.factor(as.character(house_vote[, i]))
+  print(class(house_vote[, i]))
+}
 
 #ml100kpluscovs
-load('Hwk1.RData')
+load('./data/Hwk1.RData')
 
 save(ml100, ml100kpluscovs, house_vote, InstEval, file = 'Hwk2.RData')
+save(InstEval, file = './data/InstEval.RData')
+save(house_vote, file = './data/house_vote.RData')
