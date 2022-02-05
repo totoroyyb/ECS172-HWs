@@ -179,14 +179,5 @@ load('data/ml100kpluscovs.RData')
 # save(ml100kpluscovs, file = 'data/ml100kpluscovs.RData')
 
 # Test Model Accuracy
-baseAcc <- 0
-testAcc <- 0 
-for (i in 1:100) {
-    movieLin0 <- qeLin(ml100kpluscovs[,c('rating', 'userMean_perGenre', 'itemMean_perTypeofUser')], 'rating')
-    baseAcc <- baseAcc + movieLin0$baseAcc
-    testAcc <- testAcc + movieLin0$testAcc
-}
-ba <- baseAcc/100
-ta <- testAcc/100
-cat('base accuracy: ', ba)
-cat('test accuracy: ', ta)
+cat("Test Accuracy:", replicMeans(100, "qeLin(ml100kpluscovs[,c('rating', 'userMean_perGenre', 'itemMean_perTypeofUser')], 'rating')$testAcc"))
+cat("Base Accuracy:", replicMeans(1, "qeLin(ml100kpluscovs[,c('rating', 'userMean_perGenre', 'itemMean_perTypeofUser')], 'rating')$baseAcc"))
