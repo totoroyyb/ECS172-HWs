@@ -1,5 +1,5 @@
-load('./data/house_vote.RData')
-load('./data/house_vote_remove.RData')
+load('house_vote.RData')
+load('house_vote_remove.RData')
 require(rectools)
 require(qeML)
 
