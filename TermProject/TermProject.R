@@ -146,9 +146,12 @@ run_with_varied_n <- function(m, d, rating_matrix, source_name = "Unnamed") {
     }
 
     result_df <- data.frame(MAPE = result, n = n)
-    result_df$n <- as.factor(result_df$n)
+    # result_df$n <- as.factor(result_df$n)
     p <- ggplot(result_df, aes(n, MAPE)) +
-            geom_bar(stat = "identity") +
+            geom_line(color = "grey") +
+            geom_point(
+                shape = 21, color = "black", fill = "#69b3a2", size = 6
+            ) +
             labs(
                 title = "Changes of MAPE for different n values",
                 subtitle = paste0(
@@ -224,7 +227,7 @@ run_with_fixed_md <- function(rating_matrix, source_name) {
 }
 
 # p <- run_with_varied_n(m[3], d[3], rating_matrix)
-plots <- run_with_fixed_md(rating_matrix, "test")
+# plots <- run_with_fixed_md(rating_matrix, "test")
 
 
 # rating_matrix_subset <- generate_rating_matrix_subset(n[3],
