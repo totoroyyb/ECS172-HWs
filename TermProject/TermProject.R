@@ -37,7 +37,7 @@ generate_rating_matrix_subset <- function(n, m, d, rating_matrix) {
 
     rating_matrix_subset <- matrix(rating_matrix_subset, nrow = n, ncol = m)
 
-    return(rating_matrix_subset)
+    rating_matrix_subset
 }
 
 # Generate Training and Test Sets
@@ -125,5 +125,3 @@ data_frame <- toUserItemRatings(rating_matrix_subset)
 training_test_sets <- generate_training_test_sets(data_frame)
 training_set <- generate_usermean_itemmean(training_test_sets[[1]])
 mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
-    rating_matrix_subset
-}
