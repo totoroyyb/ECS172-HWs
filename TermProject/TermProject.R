@@ -37,7 +37,7 @@ generate_rating_matrix_subset <- function(n, m, d, rating_matrix) {
 
     rating_matrix_subset <- matrix(rating_matrix_subset, nrow = n, ncol = m)
 
-    return(rating_matrix_subset)
+    rating_matrix_subset
 }
 
 # Generate Training and Test Sets
@@ -118,10 +118,119 @@ get_infirst_notsecond <- function(first_vector, second_vector) {
     return(unseen_element)
 }
 
+gen_variable_param <- function(varies1, varies2, fix_val) {
+    result <- list()
+    for (i in 1:length(varies1)) {
+        for (j in 1:length(varies2)) {
+            result[[length(result) + 1]] <- c(varies1[i], varies2[j], fix_val)
+        }
+    }
+    result
+}
 
-rating_matrix_subset <- generate_rating_matrix_subset(n[3],
-m[1], d[1], rating_matrix)
-data_frame <- toUserItemRatings(rating_matrix_subset)
-training_test_sets <- generate_training_test_sets(data_frame)
-training_set <- generate_usermean_itemmean(training_test_sets[[1]])
-mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
+run <- function(n, m, d, rating_matrix) {
+    rating_matrix_subset <- generate_rating_matrix_subset(
+        n, m, d, rating_matrix
+    )
+    data_frame <- toUserItemRatings(rating_matrix_subset)
+    training_test_sets <- generate_training_test_sets(data_frame)
+    training_set <- generate_usermean_itemmean(training_test_sets[[1]])
+    mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
+    mape
+}
+
+run_with_varied_n <- function(m, d, rating_matrix, source_name = "Unnamed") {
+    result <- c()
+    for (curr_n in n) {
+        result <- c(result, run(curr_n, m, d, rating_matrix))
+    }
+
+    result_df <- data.frame(MAPE = result, n = n)
+    result_df$n <- as.factor(result_df$n)
+    p <- ggplot(result_df, aes(n, MAPE)) +
+            geom_bar(stat = "identity") +
+            labs(
+                title = "Changes of MAPE for different n values",
+                subtitle = paste0(
+                    "where m = ",
+                    m,
+                    " and d = ",
+                    d
+                ),
+                caption = paste0("Data Source: ", source_name)
+            )
+    ggsave(paste0("./results/", "m-", m, "-d-", d, ".png"), p)
+    p
+}
+
+run_with_varied_m <- function(n, d, rating_matrix, source_name = "Unnamed") {
+    result <- c()
+    for (curr_m in m) {
+        result <- c(result, run(n, curr_m, d, rating_matrix))
+    }
+
+    result_df <- data.frame(MAPE = result, m = m)
+    result_df$m <- as.factor(result_df$m)
+    p <- ggplot(result_df, aes(m, MAPE)) +
+            geom_bar(stat = "identity") +
+            labs(
+                title = "Changes of MAPE for different m values",
+                subtitle = paste0(
+                    "where n = ",
+                    n,
+                    " and d = ",
+                    d
+                ),
+                caption = paste0("Data Source: ", source_name)
+            )
+    p
+}
+
+run_with_varied_d <- function(n, m, rating_matrix, source_name = "Unnamed") {
+    result <- c()
+    for (curr_d in d) {
+        result <- c(result, run(n, m, curr_d, rating_matrix))
+    }
+
+    result_df <- data.frame(MAPE = result, d = d)
+    result_df$d <- as.factor(result_df$d)
+    p <- ggplot(result_df, aes(d, MAPE)) +
+            geom_bar(stat = "identity") +
+            labs(
+                title = "Changes of MAPE for different m values",
+                subtitle = paste0(
+                    "where n = ",
+                    n,
+                    " and m = ",
+                    m
+                ),
+                caption = paste0("Data Source: ", source_name)
+            )
+    p
+}
+
+run_with_fixed_md <- function(rating_matrix, source_name) {
+    combs <- expand.grid(m = m, d = d)
+    plots <- c()
+    for (i in 1:nrow(combs)) {
+        plots <- c(
+            plots,
+            run_with_varied_n(
+                combs$m[[i]], combs$d[[i]], rating_matrix, source_name
+            )
+        )
+    }
+    plots
+}
+
+# p <- run_with_varied_n(m[3], d[3], rating_matrix)
+plots <- run_with_fixed_md(rating_matrix, "test")
+
+
+# rating_matrix_subset <- generate_rating_matrix_subset(n[3],
+# m[3], d[3], rating_matrix)
+# data_frame <- toUserItemRatings(rating_matrix_subset)
+# training_test_sets <- generate_training_test_sets(data_frame)
+# training_set <- generate_usermean_itemmean(training_test_sets[[1]])
+# mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
+# mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
