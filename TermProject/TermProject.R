@@ -90,7 +90,7 @@ calculate_mape_linear_model <- function(data_frame_training, data_frame_test) {
     item_mean <- c(item_mean, mean(item_mean))
 
     data_frame_test$user_mean <- user_mean[match(data_frame_test$userID, users)]
-    data_frame_test$item_mean <- user_mean[match(data_frame_test$userID, items)]
+    data_frame_test$item_mean <- item_mean[match(data_frame_test$itemID, items)]
 
     num_predictions <- dim(data_frame_test)[1]
     predictions <- rep(coefficients["(Intercept)"], each = num_predictions) +
@@ -235,4 +235,5 @@ run_with_fixed_md <- function(rating_matrix, source_name) {
 # data_frame <- toUserItemRatings(rating_matrix_subset)
 # training_test_sets <- generate_training_test_sets(data_frame)
 # training_set <- generate_usermean_itemmean(training_test_sets[[1]])
+# mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
 # mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
