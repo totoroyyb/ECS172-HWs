@@ -31,7 +31,7 @@ d <- c(20, 40, 60, 80, 100)
 generate_rating_matrix_subset <- function(n, m, d, rating_matrix) {
     rating_matrix_subset <- rating_matrix[1:n, 1:m]
 
-    rating_matrix_subset <- array(t(rating_matrix_subset))
+    rating_matrix_subset <- array(rating_matrix_subset)
     random_sequence <- sample.int(n * m, floor(n * m * (100 - d) / 100))
     rating_matrix_subset[random_sequence] <- NA
 
@@ -44,7 +44,7 @@ generate_rating_matrix_subset <- function(n, m, d, rating_matrix) {
 generate_training_test_sets <- function(data_frame) {
     test_proportion <- 0.3
     test_index <- sample.int(dim(data_frame)[1],
-    floor(dim(data_frame) * test_proportion))
+    floor(dim(data_frame)[1] * test_proportion))
 
     training_set <- data_frame[-test_index, ]
     test_set <- data_frame[test_index, ]
