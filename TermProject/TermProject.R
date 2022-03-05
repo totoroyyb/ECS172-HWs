@@ -1,17 +1,18 @@
 require(rectools)
 require(qeML)
 require(ggplot2)
+library(recosystem)
 load("./data/ml100kpluscovs.RData")
 
-# Create The Fake Rating Matrix
+# Create The Fake Rating Matrix By Linear Model
 user_mean <- tapply(ml100kpluscovs$userMean, ml100kpluscovs$user, mean)
 item_mean <- tapply(ml100kpluscovs$itemMean, ml100kpluscovs$item, mean)
 
 model <- qeLin(ml100kpluscovs[, c("rating", "userMean", "itemMean")], "rating")
 user_mean_coef <- matrix(rep(user_mean, each = length(item_mean)),
 ncol = length(item_mean), byrow = TRUE) * model$coefficients["userMean"]
-item_mean_coef <- matrix(rep(item_mean, length(user_mean)),
-nrow = length(user_mean)) * model$coefficients["itemMean"]
+item_mean_coef <- t(matrix(rep(item_mean, each = length(user_mean)),
+ncol = length(user_mean), byrow = TRUE)) * model$coefficients["itemMean"]
 
 rating_matrix <- user_mean_coef + item_mean_coef +
 model$coefficients["(Intercept)"]
@@ -26,6 +27,12 @@ set.seed(123)
 n <- c(150, 300, 450, 600, 750, length(user_mean))
 m <- c(300, 600, 900, 1200, length(item_mean))
 d <- c(20, 40, 60, 80, 100)
+
+# Create Folders for Saving Plots
+dir.create("./results", showWarnings = FALSE)
+dir.create("./results/MovieLens", showWarnings = FALSE)
+dir.create("./results/MovieLens/Linear Model", showWarnings = FALSE)
+dir.create("./results/MovieLens/MF (Reco)", showWarnings = FALSE)
 
 # Generate the Required Subset Rating Matrix
 generate_rating_matrix_subset <- function(n, m, d, rating_matrix) {
@@ -118,122 +125,274 @@ get_infirst_notsecond <- function(first_vector, second_vector) {
     return(unseen_element)
 }
 
-gen_variable_param <- function(varies1, varies2, fix_val) {
-    result <- list()
-    for (i in 1:length(varies1)) {
-        for (j in 1:length(varies2)) {
-            result[[length(result) + 1]] <- c(varies1[i], varies2[j], fix_val)
-        }
-    }
-    result
+# Generate Training and Test Files For Matrix Factorization
+generate_training_test_files <- function(training_test_sets) {
+    write.table(training_test_sets[[1]], "train.txt",
+    row.names = FALSE, col.names = FALSE)
+    write.table(training_test_sets[[2]][, -3], "test.txt",
+    row.names = FALSE, col.names = FALSE)
+
+    return(list("train.txt", "test.txt"))
 }
 
-run <- function(n, m, d, rating_matrix) {
-    rating_matrix_subset <- generate_rating_matrix_subset(
-        n, m, d, rating_matrix
-    )
-    data_frame <- toUserItemRatings(rating_matrix_subset)
-    training_test_sets <- generate_training_test_sets(data_frame)
-    training_set <- generate_usermean_itemmean(training_test_sets[[1]])
-    mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
-    mape
+# Calculate MAPE Using Matrix Factorization (Recosystem)
+calculate_mape_mf_reco <- function(train_file, test_file, actual_ratings) {
+    train_set <- data_file(train_file)
+    test_set <- data_file(test_file)
+
+    r <- Reco()
+    opts <- r$tune(train_set, opts = list(dim = c(10, 20, 30),
+    lrate = c(0.1, 0.2), costp_l1 = 0, costq_l1 = 0, nthread = 1, niter = 10))
+    r$train(train_set, opts = c(opts$min, nthread = 1, niter = 10))
+
+    pred_file <- tempfile()
+    r$predict(test_set, out_file(pred_file))
+
+    file.remove(train_file)
+    file.remove(test_file)
+
+    return(mean(abs((scan(pred_file) - actual_ratings) / actual_ratings)))
 }
 
-run_with_varied_n <- function(m, d, rating_matrix, source_name = "Unnamed") {
-    result <- c()
-    for (curr_n in n) {
-        result <- c(result, run(curr_n, m, d, rating_matrix))
+# Generate Graph For Fixed d
+generate_graph_for_fixed_d <- function(d, mape_m_n, model, data_source) {
+    data_frame_m_n <- data.frame(matrix(nrow = length(n) * length(m),
+    ncol = 3))
+    colnames(data_frame_m_n) <- c("n", "m", "mape")
+    data_frame_m_n$n <- as.factor(array(matrix(rep(n, each = length(m)),
+    ncol = length(m), byrow = TRUE)))
+    data_frame_m_n$m <- as.factor(rep(m, each = length(n)))
+    mape <- c()
+    for (i in seq_len(length(m))) {
+        mape <- c(mape, mape_m_n[i, ])
     }
+    data_frame_m_n$mape <- mape
 
-    result_df <- data.frame(MAPE = result, n = n)
-    # result_df$n <- as.factor(result_df$n)
-    p <- ggplot(result_df, aes(n, MAPE)) +
-            geom_line(color = "grey") +
-            geom_point(
-                shape = 21, color = "black", fill = "#69b3a2", size = 6
-            ) +
-            labs(
-                title = "Changes of MAPE for different n values",
-                subtitle = paste0(
-                    "where m = ",
-                    m,
-                    " and d = ",
+    plot <- ggplot(data = data_frame_m_n, aes(x = n, y = mape, group = m,
+    color = m)) +
+        geom_line() +
+        geom_point(
+            shape = 21, color = "black", fill = "#69b3a2", size = 3
+        ) +
+        scale_color_brewer(palette = "Paired") +
+        labs(
+            title = paste0("MAPE vs Number of Users for Fixed d (", model, ")"),
+            subtitle = paste0(
+                    " where d = ",
                     d
                 ),
-                caption = paste0("Data Source: ", source_name)
-            )
-    ggsave(paste0("./results/", "m-", m, "-d-", d, ".png"), p)
-    p
+            x = "Number of Users",
+            y = "MAPE (Mean Absolute Percentage Error)",
+            caption = paste0("data source: ", data_source)
+        )
+
+    save_path <- paste0("./results/", data_source, "/", model)
+    ggsave(paste0(save_path, "/d-", d, ".png"), plot)
 }
 
-run_with_varied_m <- function(n, d, rating_matrix, source_name = "Unnamed") {
-    result <- c()
-    for (curr_m in m) {
-        result <- c(result, run(n, curr_m, d, rating_matrix))
+# Generate Graph For Fixed n
+generate_graph_for_fixed_n <- function(n, mape_d_m, model, data_source) {
+    data_frame_d_m <- data.frame(matrix(nrow = length(m) * length(d),
+    ncol = 3))
+    colnames(data_frame_d_m) <- c("m", "d", "mape")
+    data_frame_d_m$m <- as.factor(array(matrix(rep(m, each = length(d)),
+    ncol = length(d), byrow = TRUE)))
+    data_frame_d_m$d <- as.factor(rep(d, each = length(m)))
+    mape <- c()
+    for (i in seq_len(length(d))) {
+        mape <- c(mape, mape_d_m[i, ])
     }
+    data_frame_d_m$mape <- mape
 
-    result_df <- data.frame(MAPE = result, m = m)
-    result_df$m <- as.factor(result_df$m)
-    p <- ggplot(result_df, aes(m, MAPE)) +
-            geom_bar(stat = "identity") +
-            labs(
-                title = "Changes of MAPE for different m values",
-                subtitle = paste0(
-                    "where n = ",
-                    n,
-                    " and d = ",
-                    d
+    plot <- ggplot(data = data_frame_d_m, aes(x = m, y = mape, group = d,
+    color = d)) +
+        geom_line() +
+        geom_point(
+            shape = 21, color = "black", fill = "#69b3a2", size = 3
+        ) +
+        scale_color_brewer(palette = "Paired") +
+        labs(
+            title = paste0("MAPE vs Number of Items for Fixed Users
+            (", model, ")"),
+            subtitle = paste0(
+                    " where n = ",
+                    n
                 ),
-                caption = paste0("Data Source: ", source_name)
-            )
-    p
+            x = "Number of Items",
+            y = "MAPE (Mean Absolute Percentage Error)",
+            caption = paste0("data source: ", data_source)
+        )
+
+    save_path <- paste0("./results/", data_source, "/", model)
+    ggsave(paste0(save_path, "/n-", n, ".png"), plot)
 }
 
-run_with_varied_d <- function(n, m, rating_matrix, source_name = "Unnamed") {
-    result <- c()
-    for (curr_d in d) {
-        result <- c(result, run(n, m, curr_d, rating_matrix))
+# Generate Graph For Fixed m
+generate_graph_for_fixed_m <- function(m, mape_n_d, model, data_source) {
+    data_frame_n_d <- data.frame(matrix(nrow = length(d) * length(n),
+    ncol = 3))
+    colnames(data_frame_n_d) <- c("d", "n", "mape")
+    data_frame_n_d$d <- as.factor(array(matrix(rep(d, each = length(n)),
+    ncol = length(n), byrow = TRUE)))
+    data_frame_n_d$n <- as.factor(rep(n, each = length(d)))
+    mape <- c()
+    for (i in seq_len(length(n))) {
+        mape <- c(mape, mape_n_d[i, ])
     }
+    data_frame_n_d$mape <- mape
 
-    result_df <- data.frame(MAPE = result, d = d)
-    result_df$d <- as.factor(result_df$d)
-    p <- ggplot(result_df, aes(d, MAPE)) +
-            geom_bar(stat = "identity") +
-            labs(
-                title = "Changes of MAPE for different m values",
-                subtitle = paste0(
-                    "where n = ",
-                    n,
-                    " and m = ",
+    plot <- ggplot(data = data_frame_n_d, aes(x = d, y = mape, group = n,
+    color = n)) +
+        geom_line() +
+        geom_point(
+            shape = 21, color = "black", fill = "#69b3a2", size = 3
+        ) +
+        scale_color_brewer(palette = "Paired") +
+        labs(
+            title = paste0("MAPE vs Proportion of Non-NA Values for Fixed Items
+            (", model, ")"),
+            subtitle = paste0(
+                    " where m = ",
                     m
                 ),
-                caption = paste0("Data Source: ", source_name)
-            )
-    p
-}
-
-run_with_fixed_md <- function(rating_matrix, source_name) {
-    combs <- expand.grid(m = m, d = d)
-    plots <- c()
-    for (i in 1:nrow(combs)) {
-        plots <- c(
-            plots,
-            run_with_varied_n(
-                combs$m[[i]], combs$d[[i]], rating_matrix, source_name
-            )
+            x = "Proportion of Non-NA Values",
+            y = "MAPE (Mean Absolute Percentage Error)",
+            caption = paste0("data source: ", data_source)
         )
-    }
-    plots
+
+    save_path <- paste0("./results/", data_source, "/", model)
+    ggsave(paste0(save_path, "/m-", m, ".png"), plot)
 }
 
-# p <- run_with_varied_n(m[3], d[3], rating_matrix)
-# plots <- run_with_fixed_md(rating_matrix, "test")
+# Calculate MAPE For Fixed d
+calculate_mape_fixed_d <- function(d, model) {
+    mape_m_n <- matrix(, nrow = length(m), ncol = length(n))
 
+    for (m_choice in m) {
+        mape_n <- c()
 
-# rating_matrix_subset <- generate_rating_matrix_subset(n[3],
-# m[3], d[3], rating_matrix)
-# data_frame <- toUserItemRatings(rating_matrix_subset)
-# training_test_sets <- generate_training_test_sets(data_frame)
-# training_set <- generate_usermean_itemmean(training_test_sets[[1]])
-# mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
-# mape <- calculate_mape_linear_model(training_set, training_test_sets[[2]])
+        for (n_choice in n) {
+            rating_matrix_subset <- generate_rating_matrix_subset(
+                n_choice, m_choice, d, rating_matrix
+            )
+
+            data_frame <- toUserItemRatings(rating_matrix_subset)
+            training_test_sets <- generate_training_test_sets(data_frame)
+
+            if (model == "Linear Model") {
+                training_set <- generate_usermean_itemmean(
+                    training_test_sets[[1]])
+                mape <- calculate_mape_linear_model(training_set,
+                training_test_sets[[2]])
+            }
+
+            if (model == "MF (Reco)") {
+                training_test_files <- generate_training_test_files(
+                training_test_sets)
+                mape <- calculate_mape_mf_reco(training_test_files[[1]],
+                training_test_files[[2]], training_test_sets[[2]]$ratings)
+            }
+
+            mape_n <- c(mape_n, mape)
+        }
+        mape_m_n[match(m_choice, m), ] <- mape_n
+    }
+
+    return(mape_m_n)
+}
+
+# Calculate MAPE For Fixed n
+calculate_mape_fixed_n <- function(n, model) {
+    mape_d_m <- matrix(, nrow = length(d), ncol = length(m))
+
+    for (d_choice in d) {
+        mape_m <- c()
+
+        for (m_choice in m) {
+            rating_matrix_subset <- generate_rating_matrix_subset(
+                n, m_choice, d_choice, rating_matrix
+            )
+
+            data_frame <- toUserItemRatings(rating_matrix_subset)
+            training_test_sets <- generate_training_test_sets(data_frame)
+
+            if (model == "Linear Model") {
+                training_set <- generate_usermean_itemmean(
+                    training_test_sets[[1]])
+                mape <- calculate_mape_linear_model(training_set,
+                training_test_sets[[2]])
+            }
+
+            if (model == "MF (Reco)") {
+                training_test_files <- generate_training_test_files(
+                training_test_sets)
+                mape <- calculate_mape_mf_reco(training_test_files[[1]],
+                training_test_files[[2]], training_test_sets[[2]]$ratings)
+            }
+ 
+            mape_m <- c(mape_m, mape)
+        }
+        mape_d_m[match(d_choice, d), ] <- mape_m
+    }
+
+    return(mape_d_m)
+}
+
+# Calculate MAPE For Fixed m
+calculate_mape_fixed_m <- function(m, model) {
+    mape_n_d <- matrix(, nrow = length(n), ncol = length(d))
+
+    for (n_choice in n) {
+        mape_d <- c()
+
+        for (d_choice in d) {
+            rating_matrix_subset <- generate_rating_matrix_subset(
+                n_choice, m, d_choice, rating_matrix
+            )
+
+            data_frame <- toUserItemRatings(rating_matrix_subset)
+            training_test_sets <- generate_training_test_sets(data_frame)
+
+            if (model == "Linear Model") {
+                training_set <- generate_usermean_itemmean(
+                    training_test_sets[[1]])
+                mape <- calculate_mape_linear_model(training_set,
+                training_test_sets[[2]])
+            }
+
+            if (model == "MF (Reco)") {
+                training_test_files <- generate_training_test_files(
+                training_test_sets)
+                mape <- calculate_mape_mf_reco(training_test_files[[1]],
+                training_test_files[[2]], training_test_sets[[2]]$ratings)
+            }
+
+            mape_d <- c(mape_d, mape)
+        }
+        mape_n_d[match(n_choice, n), ] <- mape_d
+    }
+
+    return(mape_n_d)
+}
+
+# Generate Graph
+generate_graph <- function(model, data_source) {
+    for (d_choice in d) {
+        mape_m_n <- calculate_mape_fixed_d(d_choice, model)
+        generate_graph_for_fixed_d(d_choice, mape_m_n, model, data_source)
+    }
+
+    for (n_choice in n) {
+        mape_d_m <- calculate_mape_fixed_n(n_choice, model)
+        generate_graph_for_fixed_n(n_choice, mape_d_m, model, data_source)
+    }
+
+    for (m_choice in m) {
+        mape_n_d <- calculate_mape_fixed_m(m_choice, model)
+        generate_graph_for_fixed_m(m_choice, mape_n_d, model, data_source)
+    }
+}
+
+# Main
+generate_graph("Linear Model", "MovieLens")
+generate_graph("MF (Reco)", "MovieLens")
